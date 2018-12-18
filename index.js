@@ -1,6 +1,6 @@
 const Blink1 = require('node-blink1');
 const ngrok = require('ngrok');
-const authtoken = '';
+const authtoken = '6Vcg38cCn34fo9T1maWYj_6nuWaLy45rLQrjsnKNdvb';
 const PORT = 3567;
 
 function setColor(blink, [r, g, b], duration = 1000, fadeMillis = 0) {
@@ -62,6 +62,7 @@ http
       await flashRed(light);
     }
   })
-  .listen(PORT, function() {
+  .listen(PORT, async function() {
     console.log('start');
+    await setColor(light, [0, 0, 255], 1000);
   });
