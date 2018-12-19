@@ -1,48 +1,10 @@
-const Blink1 = require('node-blink1');
+const express = require('express');
+const cors = require('cors');
 const ngrok = require('ngrok');
-const authtoken = '6Vcg38cCn34fo9T1maWYj_6nuWaLy45rLQrjsnKNdvb';
+const authtoken = '';
 const PORT = 3567;
-
-function setColor(blink, [r, g, b], duration = 1000, fadeMillis = 0) {
-  return new Promise(resolve => {
-    if (fadeMillis > 0) {
-      blink.fadeToRGB(fadeMillis, r, g, b);
-      setTimeout(async () => {
-        await stop(blink);
-        resolve();
-      }, duration);
-    } else {
-      blink.setRGB(r, g, b);
-      setTimeout(async () => {
-        await stop(blink);
-        resolve();
-      }, duration);
-    }
-  });
-}
-
-function stop(blink) {
-  return new Promise(resolve => {
-    blink.off(resolve);
-  });
-}
-
-async function flashGreen(light) {
-  for (let i = 0; i < 10; i++) {
-    await setColor(light, [0, 255, 0], 200);
-    await setColor(light, [0, 0, 0], 200);
-  }
-}
-
-async function flashRed(light) {
-  for (let i = 0; i < 10; i++) {
-    await setColor(light, [255, 0, 0], 200);
-    await setColor(light, [0, 0, 0], 200);
-  }
-}
-
-const http = require('http');
-const light = new Blink1();
+const LightControl = require('./LightControl');
+const light = new LightControl();
 
 ngrok.connect({
   authtoken,
@@ -51,18 +13,42 @@ ngrok.connect({
   region: 'us',
 });
 
-http
-  .createServer(async (req, res) => {
-    console.log('event');
-    res.end();
-    const url = req.url;
-    if (url === '/order_created') {
-      await flashGreen(light);
-    } else if (url === '/order_returned' || url === '/order_cancelled') {
-      await flashRed(light);
-    }
-  })
-  .listen(PORT, async function() {
-    console.log('start');
-    await setColor(light, [0, 0, 255], 1000);
-  });
+const app = express();
+const router = express.Router();
+app.use(express.json());
+app.use(cors({ credentials: true, origin: true }));
+app.options('*', cors());
+
+router.post('/order_created', orderCreated);
+router.post('/order_cancelled', orderCancelled);
+app.use('/', router);
+
+app.listen(PORT, async () => {
+  console.log('start');
+  await light._setColor([0, 0, 255], 1000);
+});
+
+async function orderCreated(req, res) {
+  const { total_price, total_discounts, created_at } = req.body;
+  const products = req.body.line_items.map(x => x.title || x.name).join(', ');
+  const store = req.headers['x-shopify-shop-domain'];
+  console.log(
+    'Order Created:',
+    created_at,
+    store.split('.')[0],
+    total_price,
+    total_discounts,
+    products,
+  );
+  await light.flash([0, 255, 0]);
+  res.sendStatus(200);
+}
+
+async function orderCancelled(req, res) {
+  const { updated_at } = req.body;
+  const store = req.headers['x-shopify-shop-domain'];
+
+  console.log('Order Cancelled:', updated_at, store.split('.')[0]);
+  await light.flash([255, 0, 0]);
+  res.sendStatus(200);
+}
