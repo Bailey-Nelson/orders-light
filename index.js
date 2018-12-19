@@ -17,6 +17,7 @@ const app = express();
 const router = express.Router();
 app.use(express.json());
 app.use(cors({ credentials: true, origin: true }));
+app.use(filterDuplicates);
 app.options('*', cors());
 
 router.post('/order_created', orderCreated);
@@ -28,19 +29,35 @@ app.listen(PORT, async () => {
   await light._setColor([0, 0, 255], 1000);
 });
 
+const uniqueHashes = new Set();
+
+function filterDuplicates(req, res, next) {
+  const hash = req.headers['x-shopify-hmac-sha256'];
+  const test = req.headers['x-shopify-test'];
+
+  if (!test && uniqueHashes.has(hash)) {
+    console.log('duplicate');
+    res.sendStatus(200);
+  } else {
+    uniqueHashes.add(hash);
+    next();
+  }
+}
+
 async function orderCreated(req, res) {
   const { total_price, total_discounts, created_at } = req.body;
   const products = req.body.line_items.map(x => x.title || x.name).join(', ');
-  const store = req.headers['x-shopify-shop-domain'];
+  const store = req.headers['x-shopify-shop-domain'].split('.')[0];
   console.log(
     'Order Created:',
     created_at,
-    store.split('.')[0],
+    store,
     total_price,
     total_discounts,
     products,
   );
-  await light.flash([0, 255, 0]);
+  const color = store === 'bncanada' ? [0, 255, 0] : [0, 0, 255];
+  await light.flash(color);
   res.sendStatus(200);
 }
 
