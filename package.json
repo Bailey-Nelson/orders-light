@@ -13,7 +13,9 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.16.4",
+    "moment": "^2.23.0",
     "ngrok": "^3.1.0",
-    "node-blink1": "^0.2.3"
+    "node-blink1": "^0.2.3",
+    "node-notifier": "^5.3.0"
   }
 }

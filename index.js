@@ -5,6 +5,7 @@ const authtoken = '';
 const PORT = 3567;
 const LightControl = require('./LightControl');
 const light = new LightControl();
+const notifier = require('node-notifier');
 
 ngrok.connect({
   authtoken,
@@ -48,6 +49,11 @@ async function orderCreated(req, res) {
   const { total_price, total_discounts, created_at } = req.body;
   const products = req.body.line_items.map(x => x.title || x.name).join(', ');
   const store = req.headers['x-shopify-shop-domain'].split('.')[0];
+
+  // Send response
+  res.sendStatus(200);
+
+  // Log event
   console.log(
     'Order Created:',
     created_at,
@@ -56,9 +62,16 @@ async function orderCreated(req, res) {
     total_discounts,
     products,
   );
+
+  // Show desktop notification
+  notifier.notify({
+    title: `Order Completed: ${store}`,
+    message: `${total_price}, ${total_discounts}, ${products}`,
+  });
+
+  // Flash light
   const color = store === 'bncanada' ? [0, 255, 0] : [0, 0, 255];
-  await light.flash(color);
-  res.sendStatus(200);
+  light.flash(color);
 }
 
 async function orderCancelled(req, res) {
