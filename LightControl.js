@@ -31,7 +31,7 @@ module.exports = class LightControl {
   }
 
   async flash(color = defaultColor) {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       await this._setColor(color, 200);
       await this._setColor([0, 0, 0], 200);
     }

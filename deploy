@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+
+scp *.js* pi@192.168.3.2:/home/pi/order-light
